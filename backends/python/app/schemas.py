@@ -56,3 +56,11 @@ class CheckResultResponse(APIModel):
 
 class CheckResultCreateResponse(CheckResultResponse):
     pass
+
+class ErrorDetail(APIModel):
+    code: str
+    message: str
+
+
+class ErrorResponse(APIModel):
+    error: ErrorDetail

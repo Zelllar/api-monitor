@@ -8,7 +8,8 @@ from app.schemas import (
     MonitorUpdate,
     MonitorResponse,
     CheckResultCreateResponse,
-    CheckResultResponse
+    CheckResultResponse,
+    ErrorResponse
 )
 from app.checker import check_url
 from app.scheduler import schedule_monitor, remove_monitor_schedule
@@ -34,7 +35,16 @@ def create_monitor(
 
     return monitor
 
-@router.get("/{monitor_id}", response_model=MonitorResponse)
+@router.get(
+    "/{monitor_id}",
+    response_model=MonitorResponse,
+    responses={
+        404: {
+            "model": ErrorResponse,
+            "description": "Monitor not found"
+        }
+    }
+)
 def read_monitor(
     monitor_id: int,
     db: Session = Depends(get_db)
@@ -50,7 +60,14 @@ def read_monitor(
     return monitor
 
 
-@router.patch("/{monitor_id}", response_model=MonitorResponse)
+@router.patch(
+    "/{monitor_id}",
+    response_model=MonitorResponse,
+    responses={
+        404: {"model": ErrorResponse, "description": "Monitor not found"},
+        422: {"model": ErrorResponse, "description": "Validation error"}
+    }
+)
 def update_monitor(
     monitor_id: int,
     update_data: MonitorUpdate,
@@ -91,7 +108,16 @@ def update_monitor(
 
     return updated_monitor
 
-@router.delete("/{monitor_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{monitor_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        404: {
+            "model": ErrorResponse,
+            "description": "Monitor not found"
+        }
+    }
+)
 def delete_monitor(
     monitor_id: int,
     db: Session = Depends(get_db)
@@ -109,8 +135,15 @@ def delete_monitor(
 
 @router.post(
     "/{monitor_id}/check",
-    response_model=CheckResultCreateResponse
+    response_model=CheckResultCreateResponse,
+    responses={
+        404: {
+            "model": ErrorResponse,
+            "description": "Monitor not found"
+        }
+    }
 )
+
 def run_monitor_check(
     monitor_id: int,
     db: Session = Depends(get_db)
@@ -135,7 +168,13 @@ def run_monitor_check(
 
 @router.get(
     "/{monitor_id}/history",
-    response_model=list[CheckResultResponse]
+    response_model=list[CheckResultResponse],
+    responses={
+        404: {
+            "model": ErrorResponse,
+            "description": "Monitor not found"
+        }
+    }
 )
 def read_monitor_history(
     monitor_id: int,

@@ -63,7 +63,8 @@ def test_update_monitor_not_found(client):
     )
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Monitor not found"
+    assert response.json()["error"]["code"] == "MONITOR_NOT_FOUND"
+    assert response.json()["error"]["message"] == "Monitor not found"
 
 def test_update_monitor_empty_data(client):
     create_response = client.post(
@@ -83,7 +84,8 @@ def test_update_monitor_empty_data(client):
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"] == "At least one field must be provided"
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert response.json()["error"]["message"] == "At least one field must be provided"
 
 def test_update_monitor_null_value(client):
     create_response = client.post(
@@ -105,7 +107,8 @@ def test_update_monitor_null_value(client):
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"] == "name cannot be null"
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert response.json()["error"]["message"] == "name cannot be null"
 
 def test_update_monitor_interval(client):
     create_response = client.post(
@@ -189,7 +192,8 @@ def test_delete_monitor_not_found(client):
     response = client.delete("/api/monitors/999999")
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Monitor not found"
+    assert response.json()["error"]["code"] == "MONITOR_NOT_FOUND"
+    assert response.json()["error"]["message"] == "Monitor not found"
 
 def test_run_monitor_check(client):
     create_response = client.post(
@@ -230,7 +234,8 @@ def test_run_monitor_check_not_found(client):
     )
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Monitor not found"
+    assert response.json()["error"]["code"] == "MONITOR_NOT_FOUND"
+    assert response.json()["error"]["message"] == "Monitor not found"
 
 def test_run_monitor_check_failure(client):
     create_response = client.post(
@@ -334,3 +339,34 @@ def test_run_monitor_check_failure_saves_result(client):
     assert history[0]["status"] == "DOWN"
     assert history[0]["statusCode"] == 500
     assert history[0]["responseTimeMs"] == 250
+
+def test_internal_server_error(client):
+    with patch("app.routes.crud.get_monitors", side_effect=Exception("Test error")):
+        response = client.get("/api/monitors")
+
+    assert response.status_code == 500
+
+    data = response.json()
+
+    assert data["error"]["code"] == "INTERNAL_ERROR"
+    assert data["error"]["message"] == "Internal server error"
+
+def test_route_not_found(client):
+    response = client.get("/api/nonexistent")
+
+    assert response.status_code == 404
+
+    data = response.json()
+
+    assert data["error"]["code"] == "NOT_FOUND"
+    assert data["error"]["message"] == "Not Found"
+
+def test_monitor_not_found(client):
+    response = client.get("/api/monitors/999999")
+
+    assert response.status_code == 404
+
+    data = response.json()
+
+    assert data["error"]["code"] == "MONITOR_NOT_FOUND"
+    assert data["error"]["message"] == "Monitor not found"
