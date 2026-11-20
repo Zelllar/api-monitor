@@ -3,8 +3,10 @@ uvicorn[standard]
 sqlalchemy
 alembic
 psycopg[binary]
-httpx
+httpx==0.28.1
+httpcore==1.0.9
 httpx2
 apscheduler
 pydantic-settings
 pytest
+cryptography
