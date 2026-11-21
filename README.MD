@@ -112,3 +112,129 @@ Python Backend включает механизм защиты от SSRF (Server-
 Для автоматизированного тестирования Python Backend используется pytest.
 
 На текущем этапе реализован 61 автоматизированный тест, успешно проверяющий работу приложения, API-маршрутов, логики мониторинга, планировщика и HTTP-транспорта.
+
+## Установка и запуск
+
+### Требования
+
+Для запуска проекта необходимы:
+
+- Python 3.10+
+- Docker Desktop
+- Git
+
+### 1. Клонирование репозитория
+
+```bash
+git clone https://github.com/Zelllar/api-monitor.git
+cd api-monitor
+```
+
+### 2. Запуск PostgreSQL
+
+Запустите Docker Desktop, затем из корневой папки проекта выполните:
+
+```bash
+docker compose up -d postgres
+```
+
+Проверить состояние контейнера можно командой:
+
+```bash
+docker compose ps
+```
+
+PostgreSQL запускается на порту `5432`.
+
+При первой инициализации базы данных Docker автоматически выполняет SQL-скрипт `database/schema.sql`.
+
+### 3. Настройка Python Backend
+
+Перейдите в папку Python backend:
+
+```bash
+cd backends/python
+```
+
+Создайте виртуальное окружение:
+
+```bash
+python -m venv .venv
+```
+
+Активируйте его.
+
+Для Windows CMD:
+
+```cmd
+.venv\Scripts\activate.bat
+```
+
+Для PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Установите зависимости:
+
+```bash
+pip install -r requirements.txt
+```
+
+Создайте файл `.env` в папке `backends/python`:
+
+```env
+DATABASE_URL=postgresql+psycopg://api_monitor:change_me_local@localhost:5432/api_monitor
+```
+
+Пароль должен совпадать со значением `POSTGRES_PASSWORD` в `docker-compose.yml`.
+
+Запустите Backend:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Backend будет доступен по адресу:
+
+`http://127.0.0.1:8000`
+
+Документация API (Swagger UI):
+
+`http://127.0.0.1:8000/docs`
+
+### 4. Запуск Frontend
+
+Откройте новый терминал в корневой папке проекта и выполните:
+
+```bash
+python -m http.server 5500 --bind 127.0.0.1 --directory frontend
+```
+
+Frontend будет доступен по адресу:
+
+`http://127.0.0.1:5500`
+
+Также для локальной разработки можно использовать расширение Live Server в Visual Studio Code. В этом случае необходимо использовать адрес `http://127.0.0.1:5500`, поскольку он указан в настройках CORS Backend.
+
+### 5. Запуск тестов
+
+Для запуска автоматизированных тестов Python Backend перейдите в папку `backends/python`, активируйте виртуальное окружение и выполните:
+
+```bash
+pytest
+```
+
+### Остановка приложения
+
+Для остановки Backend и Frontend используйте `Ctrl + C` в соответствующих терминалах.
+
+Для остановки PostgreSQL выполните из корневой папки проекта:
+
+```bash
+docker compose down
+```
+
+Данные PostgreSQL сохраняются в Docker volume `postgres_data`.
+
