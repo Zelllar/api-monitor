@@ -182,10 +182,10 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Создайте файл `.env` в папке `backends/python`:
+Создайте файл `.env` в папке `backends/python`, скопировав шаблон настроек:
 
-```env
-DATABASE_URL=postgresql+psycopg://api_monitor:change_me_local@localhost:5432/api_monitor
+```cmd
+copy .env.example .env
 ```
 
 Пароль должен совпадать со значением `POSTGRES_PASSWORD` в `docker-compose.yml`.
