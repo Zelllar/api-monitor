@@ -14,11 +14,6 @@
             <span class="logo-icon">◉</span>
             <h1>API Monitor</h1>
         </div>
-
-        <div class="header-status">
-            <span class="status-indicator"></span>
-            <span>System online</span>
-        </div>
     </header>
 
     <main class="main">
@@ -70,7 +65,6 @@
                     </thead>
 
                     <tbody id="monitors-list">
-                        <!-- Мониторы будут добавляться через JavaScript -->
                     </tbody>
                 </table>
             </div>
@@ -115,6 +109,7 @@
                                 <th>Дата проверки</th>
                                 <th>Статус</th>
                                 <th>HTTP-код</th>
+                                <th>Причина сбоя</th>
                                 <th>Время ответа</th>
                             </tr>
                         </thead>
@@ -168,6 +163,7 @@
                         value="60"
                         min="30"
                         max="86400"
+                        title="Введите интервал от 30 до 86400 секунд (от 30 секунд до 24 часов)"
                         required
                     >
                 </div>

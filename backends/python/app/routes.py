@@ -176,6 +176,7 @@ def run_monitor_check(
         }
     }
 )
+
 def read_monitor_history(
     monitor_id: int,
     db: Session = Depends(get_db)

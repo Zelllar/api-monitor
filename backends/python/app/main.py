@@ -2,10 +2,12 @@ from fastapi import FastAPI, Request, HTTPException as FastAPIHTTPException
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes import router
 from contextlib import asynccontextmanager
 from app.scheduler import start_scheduler, stop_scheduler
+
 
 import logging
 
@@ -24,6 +26,14 @@ app = FastAPI(
     description="API monitoring service",
     version="1.0.0",
     lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:5500"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.exception_handler(FastAPIHTTPException)

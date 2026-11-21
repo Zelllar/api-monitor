@@ -1,37 +1,64 @@
-const monitors = [
+let monitors = [];
+let openedMonitorId = null;
+let isRefreshing = false;
 
-    {
-        id: 1,
-        name: "JSONPlaceholder",
-        url: "https://jsonplaceholder.typicode.com",
-        status: "UP",
-        responseTime: 86,
-        intervalSeconds: 60,
-        history: [
-            {
-                status: "UP",
-                statusCode: 200,
-                responseTime: 86,
-                checkedAt: "2026-11-13T20:30:00",
-                isActive: true
-            },
-            {
-                status: "UP",
-                statusCode: 200,
-                responseTime: 92,
-                checkedAt: "2026-11-13T20:29:00",
-                isActive: true
-            },
-            {
-                status: "UP",
-                statusCode: 200,
-                responseTime: 81,
-                checkedAt: "2026-11-13T20:28:00",
-                isActive: true
-            }
-        ]
+const API_URL = "http://127.0.0.1:8000/api";
+
+async function fetchMonitors() {
+    
+    if (isRefreshing) return;
+
+    isRefreshing = true;
+
+    try {
+        const response = await fetch(`${API_URL}/monitors`);
+
+        if (!response.ok) {
+            throw new Error("Не удалось загрузить мониторы");
+        }
+
+        monitors = await response.json();
+
+        await Promise.all(
+            monitors.map(async (monitor) => {
+                const historyResponse = await fetch(
+                    `${API_URL}/monitors/${monitor.id}/history`
+                );
+
+                if (!historyResponse.ok) {
+                    throw new Error(
+                        `Не удалось загрузить историю монитора ${monitor.id}`
+                    );
+                }
+
+                monitor.history = await historyResponse.json();
+
+                const lastCheck = monitor.history[0];
+
+                monitor.status = lastCheck?.status ?? "UNKNOWN";
+                monitor.responseTime = lastCheck?.responseTimeMs ?? null;
+            })
+        );
+
+        renderMonitors();
+        updateStats();
+
+        if (openedMonitorId !== null) {
+            showMonitorDetails(openedMonitorId, false);
+        }
+
+    } catch (error) {
+        handleApiError(error);
+    } finally {
+        isRefreshing = false;
     }
-];
+}
+
+setInterval(() => {
+    if (!document.hidden) {
+        fetchMonitors();
+    }
+}, 15000);
 
 function renderMonitors() {
     const monitorsList = document.getElementById("monitors-list");
@@ -49,7 +76,7 @@ function renderMonitors() {
             ? `${monitor.responseTime} ms`
             : "—";
 
-        const lastChecked = monitor.history.length > 0
+        const lastChecked = monitor.history?.length > 0
             ? new Date(monitor.history[0].checkedAt).toLocaleString("ru-RU")
             : "—";
 
@@ -82,18 +109,37 @@ function renderMonitors() {
 
         const toggleBtn = row.querySelector(".toggle-btn");
 
-        toggleBtn.addEventListener("click", (event) => {
+        toggleBtn.addEventListener("click", async (event) => {
             event.stopPropagation();
-            hideError();
 
-            monitor.isActive = !monitor.isActive;
+            try {
+                const response = await fetch(
+                    `${API_URL}/monitors/${monitor.id}`,
+                    {
+                        method: "PATCH",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            isActive: !monitor.isActive
+                        })
+                    }
+                );
 
-            renderMonitors();
+                if (!response.ok) {
+                    throw new Error("Не удалось изменить статус монитора");
+                }
+
+                await fetchMonitors();
+                hideError();
+
+            } catch (error) {
+                handleApiError(error);
+            }
         });
 
         checkBtn.addEventListener("click", (event) => {
             event.stopPropagation();
-            hideError();
             checkMonitor(monitor.id);
         });
 
@@ -101,13 +147,12 @@ function renderMonitors() {
 
         editBtn.addEventListener("click", (event) => {
             event.stopPropagation();
-            hideError();
             editMonitor(monitor.id);
         });
 
         const deleteBtn = row.querySelector(".delete-btn");
 
-        deleteBtn.addEventListener("click", (event) => {
+        deleteBtn.addEventListener("click", async (event) => {
             event.stopPropagation();
             hideError();
 
@@ -117,48 +162,55 @@ function renderMonitors() {
 
             if (!confirmed) return;
 
-            const index = monitors.findIndex(
-                item => item.id === monitor.id
-            );
+            try {
+                const response = await fetch(
+                    `${API_URL}/monitors/${monitor.id}`,
+                    {
+                        method: "DELETE"
+                    }
+                );
 
-            monitors.splice(index, 1);
+                if (!response.ok) {
+                    throw new Error("Не удалось удалить монитор");
+                }
 
-            renderMonitors();
-            updateStats();
-            detailsSection.classList.remove("active");
+                detailsSection.classList.remove("active");
+
+                await fetchMonitors();
+
+            } catch (error) {
+                handleApiError(error);
+            }
         });
     });
 }
 
-function checkMonitor(monitorId) {
+async function checkMonitor(monitorId) {
     const monitor = monitors.find(
         item => item.id === monitorId
     );
 
-    if (!monitor.isActive) return;
+    if (!monitor || !monitor.isActive) return;
 
-    // Имитируем результат проверки
-    const isUp = Math.random() < 0.8;
+    try {
+        const response = await fetch(
+            `${API_URL}/monitors/${monitorId}/check`,
+            {
+                method: "POST"
+            }
+        );
 
-    const responseTime = isUp
-        ? Math.floor(Math.random() * 250) + 50
-        : null;
+        if (!response.ok) {
+            throw new Error("Не удалось выполнить проверку монитора");
+        }
 
-    const result = {
-        status: isUp ? "UP" : "DOWN",
-        statusCode: isUp ? 200 : 500,
-        responseTime: responseTime,
-        checkedAt: new Date().toISOString()
-    };
+        hideError();
+        await fetchMonitors();
+        showMonitorDetails(monitorId, false);
 
-    monitor.status = result.status;
-    monitor.responseTime = result.responseTime;
-
-    // Добавляем результат в начало истории
-    monitor.history.unshift(result);
-
-    renderMonitors();
-    updateStats();
+    } catch (error) {
+        handleApiError(error);
+    }
 }
 
 function updateStats() {
@@ -180,8 +232,7 @@ function updateStats() {
 }
 
 function initDashboard() {
-    renderMonitors();
-    updateStats();
+    fetchMonitors();
 }
 
 const modal = document.getElementById("monitor-modal");
@@ -241,9 +292,8 @@ modal.addEventListener("click", event => {
     }
 });
 
-monitorForm.addEventListener("submit", (event) => {
+monitorForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    hideError();
 
     const name = document.getElementById("monitor-name").value.trim();
     const urlValue = document.getElementById("monitor-url").value.trim();
@@ -275,47 +325,66 @@ monitorForm.addEventListener("submit", (event) => {
         return;
     }
 
-    if (editingMonitorId !== null) {
-        const monitor = monitors.find(
-            item => item.id === editingMonitorId
-        );
+    try {
+        if (editingMonitorId !== null) {
+            const response = await fetch(
+                `${API_URL}/monitors/${editingMonitorId}`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        url: url.href,
+                        intervalSeconds: interval
+                    })
+                }
+            );
 
-        if (monitor) {
-            monitor.name = name;
-            monitor.url = url.href;
-            monitor.intervalSeconds = interval;
+            if (!response.ok) {
+                throw new Error("Не удалось обновить монитор");
+            }
+
+        } else {
+            const response = await fetch(`${API_URL}/monitors`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    name: name,
+                    url: url.href,
+                    intervalSeconds: interval
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error("Не удалось создать монитор");
+            }
         }
-    } else {
-        const newMonitor = {
-            id: Date.now(),
-            name: name,
-            url: url.href,
-            intervalSeconds: interval,
-            status: "DOWN",
-            responseTime: null,
-            history: [],
-            isActive: true
-        };
 
-        monitors.push(newMonitor);
+        hideError();
+        editingMonitorId = null;
+        closeModal();
+        await fetchMonitors();
+
+    } catch (error) {
+        handleApiError(error);
     }
-
-    editingMonitorId = null;
-
-    renderMonitors();
-    updateStats();
-    closeModal();
 });
 
 const detailsSection = document.getElementById("monitor-details");
 const closeDetailsBtn = document.getElementById("close-details-btn");
 
-function showMonitorDetails(monitorId) {
+function showMonitorDetails(monitorId, shouldScroll = true) {
     const monitor = monitors.find(item => item.id === monitorId);
 
     if (!monitor) {
         return;
     }
+
+    openedMonitorId = monitorId;
 
     document.getElementById("details-name").textContent = monitor.name;
     document.getElementById("details-url").textContent = monitor.url;
@@ -338,10 +407,12 @@ function showMonitorDetails(monitorId) {
 
     detailsSection.classList.add("active");
 
-    detailsSection.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-    });
+    if (!detailsSection.classList.contains("active")) {
+        detailsSection.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    }
 }
 
 function renderHistory(monitor) {
@@ -359,18 +430,19 @@ function renderHistory(monitor) {
         const checkedAt = new Date(result.checkedAt)
             .toLocaleString("ru-RU");
 
-        row.innerHTML = `
-            <td>${checkedAt}</td>
-            <td>
-                <span class="monitor-status ${statusClass}">
-                    ${result.status}
-                </span>
-            </td>
-            <td>${result.statusCode ?? "—"}</td>
-            <td>${result.responseTime !== null
-                ? `${result.responseTime} ms`
-                : "—"}</td>
-        `;
+    row.innerHTML = `
+        <td>${checkedAt}</td>
+        <td>
+            <span class="monitor-status ${statusClass}">
+                ${result.status}
+            </span>
+        </td>
+        <td>${result.statusCode ?? "—"}</td>
+        <td>${result.errorMessage ?? "—"}</td>
+        <td>${result.responseTimeMs != null
+            ? `${result.responseTimeMs} ms`
+            : "—"}</td>
+    `;
 
         historyList.appendChild(row);
     });
@@ -378,7 +450,7 @@ function renderHistory(monitor) {
     if (monitor.history.length === 0) {
         historyList.innerHTML = `
             <tr>
-                <td colspan="4">История проверок пока отсутствует</td>
+                <td colspan="5">История проверок пока отсутствует</td>
             </tr>
         `;
     }
@@ -387,6 +459,17 @@ function renderHistory(monitor) {
 function showError(message) {
     errorMessage.textContent = message;
     errorMessage.classList.remove("hidden");
+}
+
+function handleApiError(error) {
+    if (error instanceof TypeError) {
+        showError(
+            "Не удалось подключиться к серверу. Возможно, он временно недоступен. Попробуйте позже."
+        );
+        return;
+    }
+
+    showError(error.message);
 }
 
 function hideError() {

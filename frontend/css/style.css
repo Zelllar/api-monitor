@@ -1,6 +1,3 @@
-
-/* Общие настройки */
-
 * {
     margin: 0;
     padding: 0;
@@ -13,8 +10,6 @@ body {
     color: #e5e7eb;
     min-height: 100vh;
 }
-
-/* Шапка */
 
 .header {
     display: flex;
@@ -41,30 +36,11 @@ body {
     font-size: 28px;
 }
 
-.header-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #aab4c5;
-    font-size: 14px;
-}
-
-.status-indicator {
-    width: 9px;
-    height: 9px;
-    background-color: #65d6a1;
-    border-radius: 50%;
-}
-
-/* Основная область */
-
 .main {
     max-width: 1400px;
     margin: 0 auto;
     padding: 40px;
 }
-
-/* Заголовок Dashboard */
 
 .dashboard-heading {
     display: flex;
@@ -83,8 +59,6 @@ body {
     font-size: 14px;
 }
 
-/* Кнопки */
-
 .add-monitor-btn {
     background-color: #3478f6;
     color: white;
@@ -99,8 +73,6 @@ body {
 .add-monitor-btn:hover {
     background-color: #2463d5;
 }
-
-/* Карточки статистики */
 
 .stats {
     display: grid;
@@ -135,8 +107,6 @@ body {
     color: #ff7777;
 }
 
-/* Список мониторов */
-
 .monitors-section {
     background-color: #202735;
     border: 1px solid #303a4a;
@@ -151,8 +121,6 @@ body {
 .section-heading h2 {
     font-size: 20px;
 }
-
-/* Таблица */
 
 .table-container {
     overflow-x: auto;
@@ -182,7 +150,9 @@ body {
     border-bottom: none;
 }
 
-/* Адаптация для небольших экранов */
+.monitors-table td:last-child {
+    white-space: nowrap;
+}
 
 @media (max-width: 768px) {
     .header {
@@ -225,9 +195,6 @@ body {
     background-color: rgba(255, 119, 119, 0.12);
     color: #ff7777;
 }
-
-
-/* Модальное окно */
 
 .modal-overlay {
     display: none;
@@ -276,8 +243,6 @@ body {
     color: white;
 }
 
-/* Поля формы */
-
 .form-group {
     display: flex;
     flex-direction: column;
@@ -303,8 +268,6 @@ body {
 .form-group input:focus {
     border-color: #3478f6;
 }
-
-/* Кнопки формы */
 
 .modal-actions {
     display: flex;
@@ -335,9 +298,6 @@ body {
 .submit-btn:hover {
     background-color: #2463d5;
 }
-
-
-/* Подробности монитора */
 
 .monitor-details {
     display: none;
@@ -378,8 +338,6 @@ body {
     padding: 10px 15px;
     cursor: pointer;
 }
-
-/* Карточки подробностей */
 
 .details-stats {
     display: grid;
@@ -493,4 +451,9 @@ body {
         align-items: flex-start;
         gap: 15px;
     }
+}
+
+#monitors-list td:nth-child(1),
+#monitors-list td:nth-child(2) {
+    overflow-wrap: anywhere;
 }
